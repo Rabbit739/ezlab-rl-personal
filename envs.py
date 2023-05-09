@@ -326,11 +326,17 @@ class SeiarEnvironment(gym.Env):
         nu = self.nu_min + (self.nu_daily_max - self.nu_min) * (action[0] + 1.0) / 2.0
         return nu
 
-    def step(self, action):        
+    def step(self, action):
+        
         nu = self.action2control(action)
+        
+        # add nu condition
+        if S0 < nu:
+            nu = S0
         self.nus.append(nu)
+        
         S0, E0, I0, A0, R0 = self.state
-        sol = odeint(seiar, [min(0, S0-nu), E0, I0, A0, R0], 
+        sol = odeint(seiar, [S0-nu, E0, I0, A0, R0], 
                      np.linspace(0, self.dt, 101),
                      args=(self.beta, self.psi, 0,
                            self.kappa, self.alpha, self.tau, 
@@ -342,9 +348,9 @@ class SeiarEnvironment(gym.Env):
         S, E, I, A, R = new_state
         self.state = new_state
 
-        reward = - I - nu
+        reward = - I/self.S0 - (nu/S0)**2
         if np.sum(self.nus) > self.nu_total_max:
-            reward -= 1000
+            reward -= 10000000
         reward *= self.dt
 
         self.rewards.append(reward)
