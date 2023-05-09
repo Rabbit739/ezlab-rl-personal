@@ -16,20 +16,16 @@ from stable_baselines3.common.callbacks import (
     CallbackList,
     CheckpointCallback,
     EvalCallback,
-    EveryNTimesteps,
-    StopTrainingOnMaxEpisodes,
-    StopTrainingOnNoModelImprovement,
-    StopTrainingOnRewardThreshold,
     ProgressBarCallback
 )
 
 sns.set_theme(style="whitegrid")
 
-@hydra.main(version_base=None, config_path="conf", config_name="ppo")
+@hydra.main(version_base=None, config_path="conf", config_name="ppo_seiar")
 def main(conf: DictConfig):
-    train_env = instantiate(conf.sir)
+    train_env = instantiate(conf.seiar)
     check_env(train_env)
-    log_dir = "./sir_ppo_log"
+    log_dir = "./seiar_ppo_log"
     os.makedirs(log_dir, exist_ok=True)
     train_env = Monitor(train_env, log_dir)
     policy_kwargs = dict(
@@ -39,7 +35,7 @@ def main(conf: DictConfig):
     model = PPO("MlpPolicy", train_env, verbose=0,
                 policy_kwargs=policy_kwargs)
 
-    eval_env = instantiate(conf.sir)
+    eval_env = instantiate(conf.seiar)
     eval_callback = EvalCallback(
             eval_env,
             eval_freq=1000,
@@ -78,70 +74,12 @@ def main(conf: DictConfig):
     sns.lineplot(data=df, x='days', y='infected', color='r')
     plt.xticks(color='w')
     plt.subplot(3, 1, 2)
-    sns.lineplot(data=df, x='days', y='vaccines', color='k', drawstyle='steps-pre')
-    plt.ylim([-0.001, max(conf.sir.v_max * 1.1, 0.01)])
+    sns.lineplot(data=df, x='days', y='nus', color='k', drawstyle='steps-pre')
+    plt.ylim([-0.001, max(conf.seiar.nu_daily_max * 1.2, 0.01)])
     plt.xticks(color='w')
     plt.subplot(3, 1, 3)
     sns.lineplot(data=df, x='days', y='rewards', color='g')
     plt.savefig(f"figures/best.png")
     plt.close()
-
-    best_checkpoint = ""
-    max_val = -float('inf')
-    for path in tqdm(os.listdir('checkpoints')):
-        model = PPO.load(f'checkpoints/{path}')
-        state = eval_env.reset()
-        done = False
-        while not done:
-            action, _ = model.predict(state, deterministic=True)
-            state, _, done, _ = eval_env.step(action)
-        df = eval_env.dynamics
-
-        cum_reward = df.rewards.sum()
-        if cum_reward > max_val:
-            max_val = cum_reward
-            best_checkpoint = path
-
-        plt.figure(figsize=(8,8))
-        plt.subplot(3, 1, 1)
-        plt.title(f"R = {df.rewards.sum():,.4f}")
-        sns.lineplot(data=df, x='days', y='infected', color='r')
-        plt.xticks(color='w')
-        plt.subplot(3, 1, 2)
-        sns.lineplot(data=df, x='days', y='vaccines', color='k', drawstyle='steps-pre')
-        plt.ylim([-0.001, max(conf.sir.v_max * 1.1, 0.01)])
-        plt.xticks(color='w')
-        plt.subplot(3, 1, 3)
-        sns.lineplot(data=df, x='days', y='rewards', color='g')
-        plt.savefig(f"figures/{path.replace('.zip', '.png')}")
-        plt.close()
-
-
-
-    # Visualize Controlled SIR Dynamics
-    if best_reward < max_val:
-        best_reward = max_val
-        model = PPO.load(f'checkpoints/{best_checkpoint}')
-        state = eval_env.reset()
-        done = False
-        while not done:
-            action, _ = model.predict(state, deterministic=True)
-            state, _, done, _ = eval_env.step(action)
-        df = eval_env.dynamics
-        # sns.lineplot(data=df, x='days', y='susceptible')
-        plt.figure(figsize=(8,8))
-        plt.subplot(3, 1, 1)
-        plt.title(f"R = {df.rewards.sum():,.4f}")
-        sns.lineplot(data=df, x='days', y='infected', color='r')
-        plt.xticks(color='w')
-        plt.subplot(3, 1, 2)
-        sns.lineplot(data=df, x='days', y='vaccines', color='k', drawstyle='steps-pre')
-        plt.ylim([-0.001, max(conf.sir.v_max * 1.1, 0.01)])
-        plt.xticks(color='w')
-        plt.subplot(3, 1, 3)
-        sns.lineplot(data=df, x='days', y='rewards', color='g')
-        plt.savefig(f"figures/best.png")
-        plt.close()
-
 if __name__ == '__main__':
     main()
