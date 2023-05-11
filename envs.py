@@ -336,7 +336,6 @@ class SeiarEnvironment(gym.Env):
     def step(self, action):
         
         nu = self.action2control(action)
-        print(f"action : {action}")
         self.nus.append(nu)
         
         S0, E0, I0, A0, R0 = self.state
