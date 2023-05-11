@@ -21,7 +21,7 @@ seiar:
   tf: 180
   dt: 1.0
   
-n_steps: 180000
+n_steps: 10000
 # n_step/dt = n_episodes
   
 hydra:
