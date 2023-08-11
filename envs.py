@@ -252,7 +252,7 @@ class SliarEnvironment(gym.Env):
 def seiar(y, t, beta, psi, nu, kappa, alpha, tau, p, eta, f, epsilon, q, delta):
     S, E, I, A, R = y
     Lambda = epsilon * E + (1 - q) * I + delta * A
-    dSdt = -beta * S * Lambda - psi * nu * S
+    dSdt = - beta * S * Lambda - psi * nu * S
     dEdt = beta * S * Lambda - kappa * E
     dIdt = p * kappa * E - alpha * I - tau * I
     dAdt = (1 - p) * kappa * E - eta * A
@@ -325,9 +325,9 @@ class SeiarEnvironment(gym.Env):
 
 
 
-    # 여기가 문제인 것 같음! nu의 선택권이 50%를 크게 벗어나지 못 함.
+    # nu의 선택권이 50%를 크게 벗어나지 못 함.
     def action2control(self, action):
-        nu = self.nu_min + (self.nu_daily_max - self.nu_min) * (action[0]+1)/2
+        nu = self.nu_min + (self.nu_daily_max - self.nu_min) * (action[0]+1.0)/2.0
         return nu
 
 
@@ -338,40 +338,39 @@ class SeiarEnvironment(gym.Env):
         self.nus.append(nu)
         
         S0, E0, I0, A0, R0 = self.state
-        if S0>0:
-            sol = odeint(seiar, [S0, E0, I0, A0, R0], 
-                        np.linspace(0, self.dt, 101),
-                        args=(self.beta, self.psi, 0,
-                            self.kappa, self.alpha, self.tau, 
-                            self.p, self.eta, self.f, self.epsilon,
-                            self.q, self.delta))
-        else:
-            sol = odeint(seiar, [S0, E0, I0, A0, R0], 
-                        np.linspace(0, self.dt, 101),
-                        args=(self.beta, self.psi, 0,
-                            self.kappa, self.alpha, self.tau, 
-                            self.p, self.eta, self.f, self.epsilon,
-                            self.q, self.delta))
+            
+        sol = odeint(seiar, [max(0, S0-self.psi*nu), E0, I0, A0, R0],
+                     np.linspace(0, self.dt, 101),
+                     args=(self.beta, self.psi, 0,
+                           self.kappa, self.alpha, self.tau,
+                           self.p, self.eta, self.f, self.epsilon,
+                           self.q, self.delta))
 
         self.time += self.dt
         new_state = sol[-1, :]
         S, E, I, A, R = new_state
-        self.state = new_state
 
-        if S0>0:
-            reward = - I - (nu/min(S0, self.nu_daily_max))**2
-            # S0 보다 과하게 백신을 사용하는 것은 합리적이지 않음
-        else:
-            if nu != 0:
-                reward = - I - 100000
-            # S0가 0인데 백신을 사용하는 것은 잘못된 것!
-            else:
-                reward = - I
+        # if S0>0:
+        #     reward = - I - (nu/min(S0, self.nu_daily_max))**2
+        #     # S0 보다 과하게 백신을 사용하는 것은 합리적이지 않음
+        # else:
+        #     if nu != 0:
+        #         reward = - I - 100000
+        #     # S0가 0인데 백신을 사용하는 것은 잘못된 것!
+        #     else:
+        #         reward = - I
             
+        # if np.sum(self.nus) > self.nu_total_max:
+        #     reward -= 100000
+        #     # 백신 한계치보다 많이 사용하면 안 됨
+        
+        reward = (- I - nu)/10000000
+        
         if np.sum(self.nus) > self.nu_total_max:
-            reward -= 100000
-            # 백신 한계치보다 많이 사용하면 안 됨
+            reward -= 2/10
         reward *= self.dt
+        
+        self.state = [S, E, I, A, R]
 
         self.rewards.append(reward)
         self.days.append(self.time)
