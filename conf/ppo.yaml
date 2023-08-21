@@ -12,7 +12,9 @@ sir:
   tf: 30
   dt: 1.0
 
-n_steps: 50000
+n_steps: 10000
+clip_range: 0.2     # 0.2
+lr: 0.0003          # 0.0003
 
 hydra:
   job:
