@@ -41,13 +41,13 @@ def main(conf: DictConfig):
     eval_env = instantiate(conf.seiar)
     eval_callback = EvalCallback(
             eval_env,
-            eval_freq=300*500,
+            eval_freq=300*200,
             verbose=0,
             warn=False,
             log_path='eval_log',
             best_model_save_path='best_model'
         )
-    checkpoint_callback = CheckpointCallback(save_freq=300*500, save_path='./checkpoints/',
+    checkpoint_callback = CheckpointCallback(save_freq=300*200, save_path='./checkpoints/',
                                              name_prefix='rl_model')
     callback = CallbackList([checkpoint_callback, eval_callback, ProgressBarCallback()])
 
