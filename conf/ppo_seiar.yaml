@@ -21,11 +21,14 @@ seiar:
   tf: 300
   dt: 1.0
 
-clip_range: 0.8
-lr: 0.0015
+clip_range: 1.0
+lr: 0.0006     # general: 3e-4
 n_steps: 9_000_000
 # n_step/tf = n_episodes
   
 hydra:
   job:
     chdir: true
+    
+defaults:
+  - override hydra/launcher: joblib

@@ -37,7 +37,9 @@ def main(conf: DictConfig):
                             # net_arch=[16, 32, 64, 16]
                         )
     model = PPO("MlpPolicy", train_env, verbose=0,
-                policy_kwargs=policy_kwargs)
+                policy_kwargs=policy_kwargs,
+                clip_range=conf.clip_range,
+                learning_rate=conf.lr)
 
     eval_env = instantiate(conf.sir)
     eval_callback = EvalCallback(
